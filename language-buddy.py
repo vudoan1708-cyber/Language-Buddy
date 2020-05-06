@@ -36,11 +36,23 @@ import tkinter as tk
 # print('Package Loaded')
 
 # specifying languages to be used for image-to-text analysis
-# vietnamese, english, korean, chinese simplified, french
-langs_tesseract = 'vie+eng+kor+chi_sim+fra'
+# vietnamese, english, korean, chinese simplified, french, african, finish, italian, japanese, hungarian, spanish
+langs_tesseract = 'vie+eng+kor+chi_sim+fra+afr+fin+ita+jpn+hun+spa'
 
 # specifying languages to be used for google engine (GTTS, Google Translate)
 langs_gg = 'vi+en+ko+zh+fr'
+
+# set the path to the chrom driver executables file
+# link to download: https://sites.google.com/a/chromium.org/chromedriver/downloads
+PATH = 'C:\Program Files (x86)\chromedriver.exe'
+
+
+#Sample rate is how often values are recorded 
+sample_rate = 48000
+#Chunk is like a buffer. It stores 2048 samples (bytes of data) 
+#here.  
+#it is advisable to use powers of 2 such as 1024 or 2048 
+chunk_size = 2048
 
 # SPEECH RECOGNITION
 # initialise recogniser
@@ -48,7 +60,9 @@ r = sr.Recognizer()
 
 
 def chooseDestLanguage():
-    with sr.Microphone() as source:
+    with sr.Microphone(sample_rate = sample_rate,  
+                        chunk_size = chunk_size) as source:
+        # r.adjust_for_ambient_noise(source)
         audio = r.listen(source)
         try:
             global destL
@@ -64,8 +78,34 @@ def chooseDestLanguage():
             elif 'chi' in destL:
                 destL = 'zh-CN'
                 print(destL)
+            elif 'eng' in destL:
+                destL = 'en'
+                print(destL)
+            elif 'fre' in destL:
+                destL = 'fr'
+                print(destL)
+            elif 'spa' in destL:
+                destL = 'es'
+                print(destL)
+            elif 'arab' in destL:
+                destL = 'ar'
+                print(destL)
+            elif 'jap' in destL:
+                destL = 'ja'
+                print(destL)
+            elif 'ita' in destL:
+                destL = 'it'
+                print(destL)
+            elif 'hun' in destL:
+                destL = 'hu'
+                print(destL)
+            else:
+                warning_label = tk.Label(root, text="Apparently, we don't know that language yet", bg='gray')
+                warning_label.pack()
             # call the function to do web scraping on Google Translate
-            googleTranslate()
+            # googleTranslate()
+            # call the function to do image-to-text analysis
+            analyseImg()
         except sr.UnknownValueError:
             print("Could not understand audio")
         except sr.RequestError as e:
@@ -94,10 +134,7 @@ def liveVideoCapture():
 
 # SELENIUM - WEB SCRAPING (GOOGLE TRANSLATE)
 def googleTranslate():
-    # set the path to the chrom driver executables file
-    # link to download: https://sites.google.com/a/chromium.org/chromedriver/downloads
-    PATH = 'C:\Program Files (x86)\chromedriver.exe'
-
+    global driver
     # opts = ChromeOptions()
     # opts.add_experimental_option("excludeSwitches", ['enable-automation'])
     # choose the web browser type to be driven
@@ -116,10 +153,10 @@ def googleTranslate():
     input = WebDriverWait(driver, 10).until(lambda driver: driver.find_element_by_id(inputField))
 
     # input = driver.find_element_by_xpath("//textarea[@id='source']")
-    analyseImg()
+    # analyseImg()
 
     # wait for 3 secs for analysing text
-    time.sleep(3)
+    time.sleep(2)
 
     # input some keywords into the field
     input.send_keys(keywords)
@@ -145,8 +182,17 @@ def analyseImg():
     global keywords
     keywords = pt.image_to_string(grey, lang=langs_tesseract)
     cv.waitKey(0)
-    print(keywords)
+    # print(keywords)
+    # call the function to do the translation afterwards
+    googleTranslate()
 
+def listenOrg():
+    listenField = driver.find_element_by_xpath("//div[@class='src-tts left-positioned ttsbutton jfk-button-flat source-or-target-footer-button jfk-button']")
+    listenField.click()
+
+def listenTrans():
+    listenField = driver.find_element_by_xpath("//div[@class='res-tts ttsbutton-res left-positioned ttsbutton jfk-button-flat source-or-target-footer-button jfk-button']")
+    listenField.click()
     
 # TKINTER
 root = tk.Tk()
@@ -162,5 +208,11 @@ imageRecognitionBtn.pack()
 
 speakBtn = tk.Button(root, text='Speak Your Desired Destination Language', padx=20, pady=10, fg='white', bg='black', command=chooseDestLanguage)
 speakBtn.pack()
+
+listenOrgBtn = tk.Button(root, text='Listen to The Original Text', padx=20, pady=10, fg='white', bg='red', command=listenOrg)
+listenOrgBtn.pack()
+
+listenTransBtn = tk.Button(root, text='Listen to The Translated Text', padx=20, pady=10, fg='white', bg='red', command=listenTrans)
+listenTransBtn.pack()
 
 root.mainloop()
